@@ -42,8 +42,10 @@ export function MobileSidebar() {
       {isOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden">
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"
+          <button
+            type="button"
+            aria-label="Close menu"
+            className="fixed inset-0 border-0 bg-background/80 p-0 backdrop-blur-sm transition-opacity"
             onClick={() => setIsOpen(false)}
           />
           {/* Sidebar container */}
@@ -54,6 +56,7 @@ export function MobileSidebar() {
                 size="icon"
                 className="text-foreground bg-background/50 hover:bg-background/80 rounded-full"
                 onClick={() => setIsOpen(false)}
+                aria-label="Close menu"
               >
                 <X className="h-5 w-5" />
               </Button>

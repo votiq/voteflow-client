@@ -1,195 +1,106 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
+import { Bell, Check, ChevronRight, CreditCard, Loader2, Shield, UserRound } from "lucide-react";
+import { toast } from "sonner";
+import { authApi } from "@/lib/api/auth";
+import { useAuthStore } from "@/lib/stores/auth";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
-import { Bell, CreditCard, Shield, User } from "lucide-react";
-import { useAuthStore } from "@/lib/stores/auth";
-import { authApi } from "@/lib/api/auth";
+
+const accountLinks = [
+  { title: "Notifications", description: "Review and manage the notifications sent to your account.", href: "/notifications", icon: Bell, action: "Open notifications" },
+  { title: "Wallet and payouts", description: "View your balance, transaction history, and withdrawal options.", href: "/wallet", icon: CreditCard, action: "Open wallet" },
+  { title: "Password and security", description: "Use the secure password reset flow to change your password.", href: "/forgot-password", icon: Shield, action: "Reset password" },
+];
 
 export default function SettingsPage() {
-  const { user, updateUser } = useAuthStore();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
+  const queryClient = useQueryClient();
+  const [name, setName] = useState(user?.name ?? "");
   const [isSaving, setIsSaving] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    if (user) {
-      setName(user.name || "");
-      setEmail(user.email || "");
+    if (user?.name) setName(user.name);
+  }, [user?.name]);
+
+  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!name.trim()) {
+      toast.error("Enter your name before saving.");
+      return;
     }
-  }, [user]);
 
-  if (!mounted) return null;
-
-  const initials = user?.name 
-    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase().substring(0, 2)
-    : "U";
-
-  const handleSave = async () => {
     setIsSaving(true);
     try {
-      const updated = await authApi.updateProfile({ name });
+      const updated = await authApi.updateProfile({ name: name.trim() });
       updateUser(updated);
-      setIsSaving(false);
-      toast.success("Settings saved successfully.");
+      await queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
+      toast.success("Profile updated.");
     } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to save your profile.");
+    } finally {
       setIsSaving(false);
-      toast.error(error instanceof Error ? error.message : "Unable to save settings.");
     }
   };
 
+  const initials = user?.name ? user.name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase() : "U";
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-1">Manage your account, notifications, and security preferences.</p>
-      </div>
+    <div className="space-y-7">
+      <header>
+        <h1 className="text-3xl font-bold tracking-tight">Account settings</h1>
+        <p className="mt-1 text-muted-foreground">Update your profile and open the account tools connected to your VoteFlow workspace.</p>
+      </header>
 
-      <Tabs defaultValue="profile">
-        <TabsList className="mb-6 flex flex-wrap h-auto w-full justify-start gap-1 p-1">
-          <TabsTrigger value="profile" className="gap-2"><User className="h-4 w-4" />Profile</TabsTrigger>
-          <TabsTrigger value="notifications" className="gap-2"><Bell className="h-4 w-4" />Notifications</TabsTrigger>
-          <TabsTrigger value="billing" className="gap-2"><CreditCard className="h-4 w-4" />Billing</TabsTrigger>
-          <TabsTrigger value="security" className="gap-2"><Shield className="h-4 w-4" />Security</TabsTrigger>
-        </TabsList>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><UserRound className="h-5 w-5 text-primary" />Profile information</CardTitle>
+          <CardDescription>Your name is shown on your account and organizer profile.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="max-w-xl space-y-5" onSubmit={handleSave}>
+            <div className="flex items-center gap-4">
+              {user?.avatarUrl ? <img src={user.avatarUrl} alt="Your profile" className="h-14 w-14 rounded-full object-cover" /> : <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 font-semibold text-primary">{initials}</div>}
+              <div><p className="text-sm font-medium">{user?.name || "VoteFlow member"}</p><p className="text-xs text-muted-foreground">{user?.role === "admin" ? "Administrator" : user?.role === "creator" ? "Creator" : "Voter"}</p></div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="full-name">Full name</Label>
+              <Input id="full-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email-addr">Email address</Label>
+              <Input id="email-addr" type="email" value={user?.email ?? ""} disabled />
+              <p className="text-xs text-muted-foreground">Email address changes are not available from this account screen.</p>
+            </div>
+            <Button type="submit" disabled={isSaving || !name.trim() || name.trim() === user?.name}>
+              {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+              {isSaving ? "Saving…" : "Save profile"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-        {/* Profile */}
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile Information</CardTitle>
-              <CardDescription>Update your name, email, and public profile details.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 max-w-lg">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="h-16 w-16 rounded-full bg-primary/15 flex items-center justify-center font-bold text-primary text-xl shrink-0">
-                  {initials}
-                </div>
-                <div>
-                  <Button variant="outline" size="sm">Change Avatar</Button>
-                  <p className="text-xs text-muted-foreground mt-1">JPG, PNG or GIF. Max 2MB.</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="full-name">Full Name</Label>
-                <Input id="full-name" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email-addr">Email Address</Label>
-                <Input id="email-addr" type="email" value={email} disabled />
-                <p className="text-xs text-muted-foreground">Contact support to change the email address on your account.</p>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bio">Bio (Optional)</Label>
-                <Input id="bio" placeholder="Tell voters about yourself or your organization..." />
-              </div>
-              <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save Changes"}
-              </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Notifications */}
-        <TabsContent value="notifications">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>Choose what events you want to be notified about.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 max-w-lg">
-              {[
-                { label: "New vote on your poll", desc: "Get notified each time someone votes." },
-                { label: "Poll ending soon",       desc: "24-hour reminder before your poll closes." },
-                { label: "Payout processed",       desc: "Confirmation when funds hit your wallet." },
-                { label: "New platform updates",   desc: "Product news and feature announcements." },
-              ].map((item) => (
-                <div key={item.label} className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-medium">{item.label}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">{item.desc}</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" defaultChecked className="sr-only peer" />
-                    <div className="w-10 h-5 bg-muted rounded-full peer peer-checked:bg-primary transition-colors" />
-                    <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
-                  </label>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Billing */}
-        <TabsContent value="billing">
-          <Card>
-            <CardHeader>
-              <CardTitle>Billing & Payout</CardTitle>
-              <CardDescription>Manage your payout method and withdrawal settings.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 max-w-lg">
-              <div className="p-4 border border-border rounded-lg flex flex-col sm:flex-row items-start sm:items-center gap-4 bg-muted/30">
-                <CreditCard className="h-8 w-8 text-primary shrink-0" />
-                <div>
-                  <p className="font-medium text-sm">Bank Account ****1234</p>
-                  <p className="text-xs text-muted-foreground">Default payout destination · GTB</p>
-                </div>
-                <Button variant="outline" size="sm" className="ml-auto">Change</Button>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="min-withdrawal">Minimum Withdrawal ($)</Label>
-                <Input id="min-withdrawal" type="number" defaultValue="100" />
-                <p className="text-xs text-muted-foreground">Withdrawals below this amount are held until the threshold is reached.</p>
-              </div>
-              <Button onClick={() => toast.success("Billing settings saved.")}>Save</Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Security */}
-        <TabsContent value="security">
-          <Card>
-            <CardHeader>
-              <CardTitle>Security</CardTitle>
-              <CardDescription>Keep your account safe with a strong password and 2FA.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 max-w-lg">
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold">Change Password</h3>
-                <div className="space-y-2">
-                  <Label htmlFor="current-pass">Current Password</Label>
-                  <Input id="current-pass" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-pass">New Password</Label>
-                  <Input id="new-pass" type="password" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm-pass">Confirm New Password</Label>
-                  <Input id="confirm-pass" type="password" />
-                </div>
-                <Button onClick={() => toast.success("Password updated.")}>Update Password</Button>
-              </div>
-              <div className="pt-4 border-t border-border">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold">Two-Factor Authentication</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Adds an extra layer of security to your account.</p>
-                  </div>
-                  <Button variant="outline" size="sm">Enable 2FA</Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <section className="space-y-3" aria-labelledby="account-tools-heading">
+        <div><h2 id="account-tools-heading" className="text-xl font-semibold">Account tools</h2><p className="mt-1 text-sm text-muted-foreground">Manage the rest of your account from the connected workspace pages.</p></div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {accountLinks.map(({ title, description, href, icon: Icon, action }) => (
+            <Card key={title} className="h-full">
+              <CardContent className="flex h-full flex-col p-5">
+                <Icon className="h-5 w-5 text-primary" />
+                <h3 className="mt-4 font-semibold">{title}</h3>
+                <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">{description}</p>
+                <Button asChild variant="link" className="mt-3 h-auto justify-start px-0"><Link href={href}>{action}<ChevronRight className="ml-1 h-4 w-4" /></Link></Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }

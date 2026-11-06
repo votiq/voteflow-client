@@ -9,6 +9,7 @@ import { ContestantCard } from "@/components/contestant-card";
 import { useAuthStore } from "@/lib/stores/auth";
 import { AddContestantModal } from "@/components/add-contestant-modal";
 import { CustomSelect } from "@/components/ui/custom-select";
+import { toast } from "sonner";
 
 function useCountdown(endsAt: string | undefined) {
   const [parts, setParts] = useState({ days: 0, hours: 0, mins: 0, secs: 0 });
@@ -44,7 +45,22 @@ export default function PollDetailPage() {
 
   const countdown = useCountdown(poll?.endsAt);
   const totalVotes = poll?.contestants.reduce((sum, c) => sum + c.votes, 0) || 0;
+  const leadingShare = poll && totalVotes ? Math.max(...poll.contestants.map((contestant) => contestant.votes)) / totalVotes * 100 : 0;
   const contestants = poll ? [...poll.contestants].sort((a, b) => sortMode === "votes" ? b.votes - a.votes : a.name.localeCompare(b.name)) : [];
+
+  const sharePoll = async () => {
+    if (!poll) return;
+    const url = window.location.href;
+    try {
+      if (navigator.share) await navigator.share({ title: poll.title, url });
+      else {
+        await navigator.clipboard.writeText(url);
+        toast.success("Poll link copied.");
+      }
+    } catch {
+      // The voter closed the native share sheet.
+    }
+  };
 
   if (isLoading) {
     return (
@@ -114,7 +130,7 @@ export default function PollDetailPage() {
             </p>
 
             <div className="flex flex-wrap gap-3">
-              <button className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#c3c6d7] rounded-lg font-geist text-[13px] font-medium text-[#0b1c30] hover:bg-[#eff4ff] transition-colors">
+              <button onClick={sharePoll} className="inline-flex items-center gap-2 px-5 py-2.5 bg-white border border-[#c3c6d7] rounded-lg font-geist text-[13px] font-medium text-[#0b1c30] hover:bg-[#eff4ff] transition-colors">
                 <span className="material-symbols-outlined text-[18px]">share</span>
                 Share Contest
               </button>
@@ -178,7 +194,7 @@ export default function PollDetailPage() {
                       </span>
                     </div>
                     <div className="h-2 w-full bg-[#dbe1ff] rounded-full overflow-hidden">
-                      <div className="h-full bg-[#712ae2] w-3/4 rounded-full" />
+                      <div className="h-full bg-[#712ae2] rounded-full transition-all duration-500" style={{ width: `${leadingShare}%` }} />
                     </div>
                   </div>
                   <div className="pt-4 border-t border-[#c3c6d7] flex items-center justify-between">

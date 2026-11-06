@@ -10,6 +10,7 @@ import {
   UsersRound,
   Vote,
 } from "lucide-react";
+import { ScrollReveal } from "@/components/ui/scroll-reveal";
 
 export const metadata: Metadata = {
   title: "VoteFlow — Create polls. Make every vote count.",
@@ -61,7 +62,7 @@ export default function LandingPage() {
     <div className="overflow-hidden bg-[#f8f9ff] text-[#0b1c30]">
       <section className="relative px-4 pb-20 pt-14 sm:px-8 sm:pb-24 sm:pt-20 lg:px-12 lg:pt-24">
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-0 h-[560px] bg-[radial-gradient(ellipse_at_70%_15%,rgba(180,197,255,0.5),transparent_55%),radial-gradient(ellipse_at_15%_0%,rgba(226,233,255,0.8),transparent_48%)]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10">
+        <ScrollReveal className="relative mx-auto grid max-w-7xl items-center gap-14 lg:grid-cols-[1.02fr_0.98fr] lg:gap-10">
           <div className="max-w-2xl">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#c3c6d7] bg-white/80 px-3.5 py-2 text-xs font-semibold text-[#33415c] shadow-sm">
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#e5eeff] text-[#004ac6]"><Vote className="h-3.5 w-3.5" /></span>
@@ -75,8 +76,8 @@ export default function LandingPage() {
               Bring your poll, your voters, and your results together. VoteFlow makes it easier to run a contest and easier for your community to take part.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#004ac6] px-6 text-sm font-semibold text-white shadow-lg shadow-[#004ac6]/20 transition hover:-translate-y-0.5 hover:bg-[#003ea8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004ac6] focus-visible:ring-offset-2">
-                Create your account <ArrowRight className="h-4 w-4" />
+              <Link href="/become-creator" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#004ac6] px-6 text-sm font-semibold text-white shadow-lg shadow-[#004ac6]/20 transition hover:-translate-y-0.5 hover:bg-[#003ea8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004ac6] focus-visible:ring-offset-2">
+                Become a creator <ArrowRight className="h-4 w-4" />
               </Link>
               <Link href="/polls" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#c3c6d7] bg-white/80 px-6 text-sm font-semibold text-[#17243b] transition hover:border-[#8ca7df] hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#004ac6] focus-visible:ring-offset-2">
                 Explore public polls
@@ -127,7 +128,7 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       <section id="how-it-works" className="border-y border-[#e5e8f1] bg-white px-4 py-20 sm:px-8 lg:px-12">
@@ -138,12 +139,14 @@ export default function LandingPage() {
             <p className="mt-4 text-base leading-7 text-[#626b7d]">Everything stays organized as your poll moves from setup to participation.</p>
           </div>
           <div className="mt-12 grid gap-5 md:grid-cols-3">
-            {steps.map(({ number, title, description, icon: Icon }) => (
-              <article key={number} className="relative rounded-2xl border border-[#e5e8f1] bg-[#fbfcff] p-6 sm:p-7">
+            {steps.map(({ number, title, description, icon: Icon }, index) => (
+              <ScrollReveal key={number} delay={index * 0.07}>
+              <article className="relative h-full rounded-2xl border border-[#e5e8f1] bg-[#fbfcff] p-6 sm:p-7">
                 <div className="flex items-center justify-between"><span className="font-geist text-sm font-semibold tracking-[0.12em] text-[#8b91a1]">{number}</span><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#e5eeff] text-[#004ac6]"><Icon className="h-5 w-5" /></span></div>
                 <h3 className="mt-6 text-lg font-semibold">{title}</h3>
                 <p className="mt-2 text-sm leading-6 text-[#626b7d]">{description}</p>
               </article>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -161,27 +164,29 @@ export default function LandingPage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {features.map(({ title, description, icon: Icon }, index) => (
-              <article key={title} className={`rounded-2xl border border-[#e5e8f1] p-6 ${index === 0 ? "bg-[#eef4ff] sm:col-span-2" : "bg-white"}`}>
+              <ScrollReveal key={title} className={index === 0 ? "sm:col-span-2" : undefined} delay={index * 0.06}>
+              <article className={`h-full rounded-2xl border border-[#e5e8f1] p-6 ${index === 0 ? "bg-[#eef4ff]" : "bg-white"}`}>
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-[#004ac6] shadow-sm"><Icon className="h-5 w-5" /></span>
                 <h3 className="mt-5 font-semibold">{title}</h3>
                 <p className="mt-2 max-w-lg text-sm leading-6 text-[#626b7d]">{description}</p>
               </article>
+              </ScrollReveal>
             ))}
           </div>
         </div>
       </section>
 
       <section className="px-4 pb-20 sm:px-8 lg:px-12">
-        <div className="relative mx-auto max-w-7xl overflow-hidden rounded-[1.75rem] bg-[#071b3c] px-6 py-12 text-white sm:px-12 sm:py-16">
+        <ScrollReveal className="relative mx-auto max-w-7xl overflow-hidden rounded-[1.75rem] bg-[#071b3c] px-6 py-12 text-white sm:px-12 sm:py-16">
           <div aria-hidden="true" className="absolute -right-20 -top-40 h-96 w-96 rounded-full bg-[#315ed5]/35 blur-3xl" />
           <div className="relative flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
             <div className="max-w-2xl"><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#b4c5ff]">Ready when you are</p><h2 className="mt-3 font-geist text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Give your next poll a better home.</h2><p className="mt-4 max-w-xl text-sm leading-6 text-[#d4dcf2] sm:text-base">Create an account to set up your poll, or browse public polls and join a vote already in progress.</p></div>
             <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-              <Link href="/register" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[#0b1c30] transition hover:bg-[#eef2ff]">Get started <ArrowRight className="h-4 w-4" /></Link>
+              <Link href="/become-creator" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-white px-5 text-sm font-semibold text-[#0b1c30] transition hover:bg-[#eef2ff]">Become a creator <ArrowRight className="h-4 w-4" /></Link>
               <Link href="/polls" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/25 px-5 text-sm font-semibold text-white transition hover:bg-white/10">Browse polls</Link>
             </div>
           </div>
-        </div>
+        </ScrollReveal>
       </section>
     </div>
   );

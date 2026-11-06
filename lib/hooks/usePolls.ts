@@ -16,6 +16,13 @@ export function useMyPolls() {
   });
 }
 
+export function useMyPollVoteTrend() {
+  return useQuery({
+    queryKey: ["polls", "mine", "vote-trend"],
+    queryFn: () => pollsApi.myPollVoteTrend(),
+  });
+}
+
 export function useCreatePoll() {
   const queryClient = useQueryClient();
   return useMutation({

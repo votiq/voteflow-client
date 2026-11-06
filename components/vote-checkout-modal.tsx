@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ interface VoteCheckoutModalProps {
 }
 
 export function VoteCheckoutModal({ isOpen, onClose, contestant, poll }: VoteCheckoutModalProps) {
+  const router = useRouter();
   const [quantity, setQuantity] = useState(1);
   const [email, setEmail] = useState("");
   const [isInitializingPayment, setIsInitializingPayment] = useState(false);
@@ -78,7 +80,17 @@ export function VoteCheckoutModal({ isOpen, onClose, contestant, poll }: VoteChe
           ? "Thank you for voting."
           : `Payment of ₦${Number(paidAmount ?? checkoutAmount ?? total).toFixed(2)} processed.`,
       });
+      try {
+        sessionStorage.setItem("voteflow-last-vote", JSON.stringify({
+          pollSlug: poll.slug,
+          contestantId: contestant.id,
+          quantity,
+        }));
+      } catch {
+        // Continue to the confirmation route; it can read the poll details from the URL.
+      }
       onClose();
+      router.push(`/vote-success?poll=${encodeURIComponent(poll.slug)}&contestant=${encodeURIComponent(contestant.id)}&quantity=${quantity}`);
       setQuantity(1);
       setEmail("");
       setPendingPaymentRef(null);
@@ -205,6 +217,7 @@ export function VoteCheckoutModal({ isOpen, onClose, contestant, poll }: VoteChe
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isProcessing}
                 />
+                <p className="text-xs leading-5 text-muted-foreground">Secure inline checkout. Your vote is recorded after the payment is verified.</p>
               </div>
             )}
 

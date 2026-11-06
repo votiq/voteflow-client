@@ -13,8 +13,8 @@
 | State (client) | Zustand v5 |
 | Forms | React Hook Form + Zod |
 | Notifications | Sonner |
-| Animations | Framer Motion (available, not yet used) |
-| Backend | Django REST API (not yet integrated) |
+| Animations | Framer Motion page transitions and scroll entry/exit reveals |
+| Backend | Django REST API, consumed through typed API functions |
 
 ---
 
@@ -33,7 +33,10 @@ voteflow-client/
 │   │   │   ├── page.tsx              # Discover Contests /polls
 │   │   │   └── [slug]/
 │   │   │       └── page.tsx          # Poll Detail /polls/:slug
-│   │   └── results/                  # (planned) /results
+│   │   ├── become-creator/page.tsx   # Organizer access journey
+│   │   ├── results/page.tsx          # Public results index
+│   │   ├── results/[slug]/page.tsx   # Poll standings
+│   │   └── vote-success/page.tsx     # Post-vote confirmation
 │   ├── (auth)/                       # Auth routes — no layout chrome
 │   │   ├── login/page.tsx
 │   │   ├── register/page.tsx
@@ -88,13 +91,7 @@ voteflow-client/
 
 ---
 
-## Data Flow (Current — Mock)
-
-```
-lib/data/polls.ts  →  page.tsx / contestant-card.tsx  →  Browser
-```
-
-## Data Flow (Target — API)
+## Data Flow (Current — API-backed)
 
 ```
 Django REST API

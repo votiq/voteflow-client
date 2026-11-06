@@ -106,4 +106,5 @@ export interface PollFilters {
   status?: PollStatus | 'all';
   isPaid?: boolean;
   sortBy?: 'votes' | 'newest' | 'ending_soon' | 'alphabetical';
+  page?: number;
 }

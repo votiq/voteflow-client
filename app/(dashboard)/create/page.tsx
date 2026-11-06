@@ -65,6 +65,30 @@ export default function CreatePollPage() {
     description: string;
     image: File | null;
   }[]>([{ id: 1, name: "", description: "", image: null }]);
+  const selectedEndTime = Date.parse(pollData.endsAt);
+  const paidPrice = Number(pollData.price);
+
+  const minimumEndDate = (() => {
+    const date = new Date(Date.now() + 60_000);
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+    return localDate.toISOString().slice(0, 16);
+  })();
+
+  const handleImageChange = (file: File | null, update: (file: File | null) => void) => {
+    if (!file) {
+      update(null);
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("Choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Images must be 5 MB or smaller.");
+      return;
+    }
+    update(file);
+  };
 
   const handleAddContestant = () => {
     setContestants([...contestants, { id: Date.now(), name: "", description: "", image: null }]);
@@ -234,10 +258,7 @@ export default function CreatePollPage() {
                   id="image" 
                   type="file" 
                   accept="image/*"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0] || null;
-                    setPollData({...pollData, image: file});
-                  }}
+                  onChange={(e) => handleImageChange(e.target.files?.[0] ?? null, (image) => setPollData((current) => ({ ...current, image })))}
                   className="cursor-pointer"
                 />
                 <p className="text-xs text-muted-foreground">Upload a high-quality cover image for your poll.</p>
@@ -249,6 +270,7 @@ export default function CreatePollPage() {
                   id="endsAt" 
                   type="datetime-local" 
                   value={pollData.endsAt}
+                  min={minimumEndDate}
                   onChange={(e) => setPollData({...pollData, endsAt: e.target.value})}
                 />
               </div>
@@ -277,7 +299,7 @@ export default function CreatePollPage() {
               </div>
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button onClick={() => setStep(2)} disabled={!pollData.title || !pollData.endsAt || (pollData.type === "paid" && (!pollData.price || Number(pollData.price) <= 0))}>
+              <Button onClick={() => setStep(2)} disabled={!pollData.title.trim() || !Number.isFinite(selectedEndTime) || selectedEndTime <= Date.now() || (pollData.type === "paid" && (!Number.isFinite(paidPrice) || paidPrice <= 0))}>
                 Next Step <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
@@ -313,10 +335,7 @@ export default function CreatePollPage() {
                       <Input 
                         type="file" 
                         accept="image/*"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0] || null;
-                          handleContestantChange(c.id, 'image', file);
-                        }}
+                        onChange={(e) => handleImageChange(e.target.files?.[0] ?? null, (image) => handleContestantChange(c.id, 'image', image))}
                         className="cursor-pointer"
                       />
                     </div>
@@ -337,7 +356,7 @@ export default function CreatePollPage() {
             </CardContent>
             <CardFooter className="flex justify-between">
               <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-              <Button onClick={() => setStep(3)} disabled={contestants.some(c => !c.name)}>
+              <Button onClick={() => setStep(3)} disabled={contestants.some(c => !c.name.trim())}>
                 Next Step <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>

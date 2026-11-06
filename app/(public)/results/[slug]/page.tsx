@@ -3,7 +3,6 @@
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { usePoll } from "@/lib/hooks/usePoll";
-import { TopNav } from "@/components/layout/top-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -17,8 +16,8 @@ export default function ResultsPage() {
   const { slug } = useParams() as { slug: string };
   const { data: poll, isLoading, error } = usePoll(slug);
 
-  if (isLoading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  if (error || !poll) return <div className="flex min-h-screen flex-col items-center justify-center gap-4"><p>Unable to load results for this poll.</p><Link href="/polls"><Button variant="outline">Browse polls</Button></Link></div>;
+  if (isLoading) return <div className="flex min-h-[65vh] items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (error || !poll) return <div className="flex min-h-[65vh] flex-col items-center justify-center gap-4"><p>Unable to load results for this poll.</p><Link href="/polls"><Button variant="outline">Browse polls</Button></Link></div>;
 
   const contestants = [...poll.contestants].sort((a, b) => b.votes - a.votes);
   const totalVotes = contestants.reduce((sum, contestant) => sum + contestant.votes, 0);
@@ -39,9 +38,8 @@ export default function ResultsPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-background">
-      <TopNav />
-      <main className="container mx-auto max-w-4xl flex-1 px-4 py-8 md:px-6">
+    <div className="bg-slate-50 dark:bg-background">
+      <section className="container mx-auto min-h-[65vh] max-w-4xl px-4 py-8 md:px-6">
         <Link href={`/polls/${slug}`}><Button variant="ghost" className="mb-6 -ml-4 text-muted-foreground"><ArrowLeft className="mr-2 h-4 w-4" />Back to Poll</Button></Link>
 
         <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
@@ -97,7 +95,7 @@ export default function ResultsPage() {
           })}
         </div>
         {poll.isPaid && <p className="mt-8 text-center text-sm text-muted-foreground">Vote price: {money(Number(poll.pricePerVote || 0))}</p>}
-      </main>
+      </section>
     </div>
   );
 }

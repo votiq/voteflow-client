@@ -46,7 +46,7 @@ const secondaryNavItems: NavItem[] = [
 
 function NavLink({ item }: { item: NavItem }) {
   const pathname = usePathname();
-  const isActive = pathname === item.href;
+  const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(`${item.href}/`));
   const Icon = item.icon;
 
   return (

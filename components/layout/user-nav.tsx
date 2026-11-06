@@ -42,9 +42,9 @@ export function UserNav() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center font-bold text-primary text-sm cursor-pointer hover:bg-primary/25 transition-colors select-none">
+        <button type="button" aria-label="Open account menu" className="h-9 w-9 rounded-full bg-primary/15 flex items-center justify-center font-bold text-primary text-sm cursor-pointer hover:bg-primary/25 transition-colors select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
           {initials}
-        </div>
+        </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56 bg-white/70 backdrop-blur-md border-slate-200/50 shadow-xl">
         <DropdownMenuLabel>

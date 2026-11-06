@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { adminApi } from "@/lib/api/admin";
 import { authApi } from "@/lib/api/auth";
-import { useMyPolls, usePolls } from "@/lib/hooks/usePolls";
+import { useMyPolls, useMyPollVoteTrend, usePolls } from "@/lib/hooks/usePolls";
 import { useNotifications } from "@/lib/hooks/useNotifications";
 import { useWallet } from "@/lib/hooks/useWallet";
 import { PollCard } from "@/components/poll-card";
@@ -122,6 +122,7 @@ export function VoterDashboard({ user }: { user: User }) {
 
 export function OrganizerDashboard({ user }: { user: User }) {
   const pollsQuery = useMyPolls();
+  const voteTrendQuery = useMyPollVoteTrend();
   const walletQuery = useWallet();
   const notificationsQuery = useNotifications();
   const polls = pollsQuery.data?.results ?? [];
@@ -130,6 +131,9 @@ export function OrganizerDashboard({ user }: { user: User }) {
   const voteCount = polls.reduce((total, poll) => total + poll.votesCount, 0);
   const topPolls = [...polls].sort((a, b) => b.votesCount - a.votesCount).slice(0, 5);
   const recentActivity = notificationsQuery.data?.slice(0, 5) ?? [];
+  const voteTrend = voteTrendQuery.data ?? [];
+  const weeklyVotes = voteTrend.reduce((total, day) => total + day.votes, 0);
+  const maxDailyVotes = Math.max(1, ...voteTrend.map((day) => day.votes));
 
   return (
     <div className="space-y-6">
@@ -138,13 +142,43 @@ export function OrganizerDashboard({ user }: { user: User }) {
         <Button asChild><Link href="/create">Create a poll</Link></Button>
       </div>
 
-      {(pollsQuery.error || walletQuery.error || notificationsQuery.error) && <p className="text-sm text-destructive">Some organizer data could not be loaded. Refresh the page to try again.</p>}
+      {(pollsQuery.error || voteTrendQuery.error || walletQuery.error || notificationsQuery.error) && <p className="text-sm text-destructive">Some organizer data could not be loaded. Refresh the page to try again.</p>}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <SummaryCard title="Lifetime earnings" value={walletQuery.isLoading ? "—" : money(walletQuery.data?.lifetimeEarnings ?? 0)} icon={<CreditCard className="h-4 w-4 text-muted-foreground" />} />
         <SummaryCard title="Active polls" value={loading ? "—" : activeCount.toLocaleString()} icon={<Activity className="h-4 w-4 text-muted-foreground" />} />
         <SummaryCard title="Total votes" value={loading ? "—" : voteCount.toLocaleString()} icon={<BarChart3 className="h-4 w-4 text-muted-foreground" />} />
         <SummaryCard title="Available balance" value={walletQuery.isLoading ? "—" : money(walletQuery.data?.availableBalance ?? 0)} icon={<ArrowUpRight className="h-4 w-4 text-muted-foreground" />} />
       </div>
+
+      <Card>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div><CardTitle>Vote activity</CardTitle><CardDescription>Votes recorded across your polls over the last seven days.</CardDescription></div>
+          <Button variant="outline" size="sm" asChild><Link href="/analytics">Full analytics <ArrowUpRight className="ml-2 h-4 w-4" /></Link></Button>
+        </CardHeader>
+        <CardContent>
+          {voteTrendQuery.isLoading ? <LoadingBlock compact /> : voteTrendQuery.error ? (
+            <p className="py-6 text-center text-sm text-destructive">Unable to load your vote activity.</p>
+          ) : voteTrend.length ? (
+            <>
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div><p className="text-sm text-muted-foreground">Votes this week</p><p className="text-3xl font-bold">{weeklyVotes.toLocaleString()}</p></div>
+                {!weeklyVotes && <p className="text-sm text-muted-foreground">Your daily totals will appear here when votes are cast.</p>}
+              </div>
+              <div className="grid h-36 grid-cols-7 gap-2 sm:gap-4" role="img" aria-label={`Daily votes for the last seven days, ${weeklyVotes} total`}>
+                {voteTrend.map((day) => {
+                  const label = new Date(`${day.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" });
+                  const height = day.votes ? Math.max(8, (day.votes / maxDailyVotes) * 100) : 4;
+                  return <div key={day.date} className="flex min-w-0 flex-col items-center justify-end gap-2" title={`${label}: ${day.votes.toLocaleString()} votes`}>
+                    <div className="flex w-full flex-1 items-end"><div className={`w-full rounded-t-md ${day.votes ? "bg-primary" : "bg-muted"}`} style={{ height: `${height}%` }} /></div>
+                    <span className="text-[11px] text-muted-foreground">{label}</span>
+                    <span className="sr-only">{day.votes.toLocaleString()} votes</span>
+                  </div>;
+                })}
+              </div>
+            </>
+          ) : <p className="py-8 text-center text-sm text-muted-foreground">No vote activity is available yet.</p>}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 lg:grid-cols-7">
         <Card className="lg:col-span-4">
@@ -169,22 +203,25 @@ export function AdminDashboard({ user }: { user: User }) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["admin-dashboard", user.id],
     queryFn: async () => {
-      const [users, organizers, admins, requests, logs] = await Promise.all([
-        adminApi.users("USER"),
-        adminApi.users("ORGANIZER"),
-        adminApi.users("ADMIN"),
+      const [summary, requests] = await Promise.all([
+        adminApi.dashboard(),
         authApi.organizerRequests(),
-        adminApi.auditLogs(),
       ]);
-      return {
-        userCount: users.count,
-        organizerCount: organizers.count,
-        adminCount: admins.count,
-        requests,
-        logs: logs.results.slice(0, 6),
-      };
+      return { ...summary, requests };
     },
   });
+
+  const metrics = [
+    { title: "Registered accounts", value: data?.total_users, description: `${data?.voter_accounts ?? 0} voters · ${data?.administrator_accounts ?? 0} administrators`, icon: <Users className="h-4 w-4 text-muted-foreground" /> },
+    { title: "Active accounts", value: data?.active_users, description: "Accounts able to sign in", icon: <CheckCircle2 className="h-4 w-4 text-muted-foreground" /> },
+    { title: "Creator accounts", value: data?.organizer_accounts, description: "Approved organizers", icon: <ShieldCheck className="h-4 w-4 text-muted-foreground" /> },
+    { title: "Pending requests", value: data?.pending_organizer_requests, description: "Organizer applications awaiting review", icon: <Clock3 className="h-4 w-4 text-muted-foreground" /> },
+    { title: "Polls accepting votes", value: data?.active_polls, description: `Across ${data?.total_polls ?? 0} total polls`, icon: <Activity className="h-4 w-4 text-muted-foreground" /> },
+    { title: "Contests", value: data?.total_contests, description: `${data?.live_contests ?? 0} live · ${data?.suspended_contests ?? 0} suspended`, icon: <Activity className="h-4 w-4 text-muted-foreground" /> },
+    { title: "Votes cast", value: data?.total_votes, description: "Recorded vote quantity", icon: <BarChart3 className="h-4 w-4 text-muted-foreground" /> },
+    { title: "Confirmed payments", value: data?.confirmed_payments, description: "Completed payment records", icon: <CreditCard className="h-4 w-4 text-muted-foreground" /> },
+    { title: "Payments pending", value: data?.pending_payments, description: "Awaiting confirmation", icon: <Clock3 className="h-4 w-4 text-muted-foreground" /> },
+  ];
 
   return (
     <div className="space-y-6">
@@ -195,10 +232,7 @@ export function AdminDashboard({ user }: { user: User }) {
 
       {error && <p className="text-sm text-destructive">Unable to load all administration data. Refresh the page to try again.</p>}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <SummaryCard title="Voter accounts" value={isLoading ? "—" : (data?.userCount ?? 0).toLocaleString()} description="Registered user role" icon={<Users className="h-4 w-4 text-muted-foreground" />} />
-        <SummaryCard title="Organizers" value={isLoading ? "—" : (data?.organizerCount ?? 0).toLocaleString()} description="Approved organizer accounts" icon={<ShieldCheck className="h-4 w-4 text-muted-foreground" />} />
-        <SummaryCard title="Administrators" value={isLoading ? "—" : (data?.adminCount ?? 0).toLocaleString()} description="Accounts with admin access" icon={<Users className="h-4 w-4 text-muted-foreground" />} />
-        <SummaryCard title="Pending requests" value={isLoading ? "—" : (data?.requests.length ?? 0).toLocaleString()} description="Organizer applications awaiting review" icon={<Clock3 className="h-4 w-4 text-muted-foreground" />} />
+        {metrics.map((metric) => <SummaryCard key={metric.title} title={metric.title} value={isLoading ? "—" : (metric.value ?? 0).toLocaleString()} description={metric.description} icon={metric.icon} />)}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-5">
@@ -211,7 +245,7 @@ export function AdminDashboard({ user }: { user: User }) {
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle>Recent audit activity</CardTitle><CardDescription>Latest security and platform events.</CardDescription></CardHeader>
           <CardContent>
-            {isLoading ? <LoadingBlock /> : data?.logs.length ? <div className="space-y-4">{data.logs.map((log) => <div key={log.id} className="flex items-start gap-3"><div className="mt-0.5 rounded-full bg-muted p-2"><Activity className="h-3.5 w-3.5 text-muted-foreground" /></div><div className="min-w-0 flex-1"><p className="text-sm font-medium">{humanize(log.action_type)}</p><p className="text-xs text-muted-foreground">{log.resource_type || "Platform"} · {new Date(log.timestamp).toLocaleString()}</p></div></div>)}</div> : <p className="py-8 text-center text-sm text-muted-foreground">No audit activity is available.</p>}
+            {isLoading ? <LoadingBlock /> : data?.recent_activity.length ? <div className="space-y-4">{data.recent_activity.map((log) => <div key={log.id} className="flex items-start gap-3"><div className="mt-0.5 rounded-full bg-muted p-2"><Activity className="h-3.5 w-3.5 text-muted-foreground" /></div><div className="min-w-0 flex-1"><p className="text-sm font-medium">{humanize(log.action_type)}</p><p className="text-xs text-muted-foreground">{log.resource_type || "Platform"} · {new Date(log.timestamp).toLocaleString()}</p></div></div>)}</div> : <p className="py-8 text-center text-sm text-muted-foreground">No audit activity is available.</p>}
           </CardContent>
         </Card>
       </div>

@@ -138,7 +138,15 @@ export default function SignInPage() {
     try {
       await login({ email: data.email, password: data.password });
       toast.success("Welcome back!");
-      router.push("/dashboard");
+      const requestedPath = new URLSearchParams(window.location.search).get("redirect");
+      let safeRedirect = "/dashboard";
+      if (requestedPath?.startsWith("/")) {
+        const requestedUrl = new URL(requestedPath, window.location.origin);
+        if (requestedUrl.origin === window.location.origin) {
+          safeRedirect = `${requestedUrl.pathname}${requestedUrl.search}${requestedUrl.hash}`;
+        }
+      }
+      router.push(safeRedirect);
     } catch (error: any) {
       toast.error(
         error.message || "Failed to sign in. Please check your credentials.",

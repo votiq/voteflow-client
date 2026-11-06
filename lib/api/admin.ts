@@ -21,9 +21,29 @@ export interface AdminAuditLog {
   metadata: Record<string, unknown>;
 }
 
+export interface AdminDashboardSummary {
+  total_users: number;
+  active_users: number;
+  voter_accounts: number;
+  organizer_accounts: number;
+  administrator_accounts: number;
+  pending_organizer_requests: number;
+  total_polls: number;
+  active_polls: number;
+  total_contests: number;
+  live_contests: number;
+  suspended_contests: number;
+  total_votes: number;
+  confirmed_payments: number;
+  pending_payments: number;
+  recent_activity: Array<Pick<AdminAuditLog, "id" | "action_type" | "resource_type" | "timestamp">>;
+}
+
 type Page<T> = Partial<PaginatedResponse<T>> & { items?: T[] };
 
 export const adminApi = {
+  dashboard: () => apiClient.get<AdminDashboardSummary>("/admin/dashboard/"),
+
   users: (role?: AdminUser["role"]) => {
     const params = new URLSearchParams();
     if (role) params.set("role", role);

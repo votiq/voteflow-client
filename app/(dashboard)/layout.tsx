@@ -1,8 +1,9 @@
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileSidebar } from "@/components/layout/mobile-sidebar";
 import { UserNav } from "@/components/layout/user-nav";
-import { Bell, Search } from "lucide-react";
+import { Bell } from "lucide-react";
 import Link from "next/link";
+import { DashboardSearch } from "@/components/layout/dashboard-search";
 
 export default function DashboardLayout({
   children,
@@ -16,18 +17,9 @@ export default function DashboardLayout({
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Top Header */}
         <header className="h-16 border-b flex items-center justify-between px-4 md:px-6 bg-background shrink-0 z-10">
-          {/* Left: Mobile Menu & Search */}
           <div className="flex items-center gap-2 md:gap-4">
             <MobileSidebar />
-            <div className="relative hidden md:flex items-center">
-              <Search className="absolute left-3 h-4 w-4 text-muted-foreground" />
-            <input
-              type="search"
-              placeholder="Search polls, contestants..."
-              aria-label="Search dashboard"
-              className="pl-9 pr-4 py-1.5 text-sm border border-border rounded-lg bg-muted/40 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary w-64 transition-all"
-            />
-            </div>
+            <DashboardSearch />
           </div>
 
           {/* Right: Actions */}

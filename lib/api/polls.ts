@@ -1,5 +1,6 @@
 import { apiClient, normalizePaginatedResponse } from "./client";
 import type { Poll, PollFilters, PaginatedResponse, Contestant } from "@/lib/types";
+import { POLL_PAGE_SIZE } from "@/lib/constants";
 
 interface InlineVoteCheckoutPayload {
   contestant_id: string;
@@ -16,6 +17,11 @@ interface InlineVoteCheckoutResponse {
   public_key: string;
 }
 
+export interface VoteTrendPoint {
+  date: string;
+  votes: number;
+}
+
 // ─── Polls ────────────────────────────────────────────────────
 
 export const pollsApi = {
@@ -27,6 +33,10 @@ export const pollsApi = {
     if (filters?.status && filters.status !== "all")
       params.set("status", filters.status);
     if (filters?.sortBy)   params.set("ordering", filters.sortBy);
+    if (filters?.page) {
+      params.set("limit", String(POLL_PAGE_SIZE));
+      params.set("offset", String((filters.page - 1) * POLL_PAGE_SIZE));
+    }
 
     const query = params.toString();
     return apiClient
@@ -39,6 +49,9 @@ export const pollsApi = {
     apiClient
       .get<Partial<PaginatedResponse<Poll>> & { items?: Poll[] }>("/polls/my-polls/")
       .then(normalizePaginatedResponse),
+
+  myPollVoteTrend: () =>
+    apiClient.get<VoteTrendPoint[]>("/polls/my-polls/analytics/"),
 
   /** GET /polls/:slug/ */
   get: (slug: string) =>

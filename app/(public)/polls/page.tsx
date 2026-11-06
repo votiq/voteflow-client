@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import type { Metadata } from "next";
-import { POLL_CATEGORIES } from "@/lib/constants";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { POLL_CATEGORIES, POLL_MAX_OFFSET, POLL_PAGE_SIZE } from "@/lib/constants";
 import { PollCard } from "@/components/poll-card";
 import { usePolls } from "@/lib/hooks/usePolls";
 import type { PollStatus } from "@/lib/types";
@@ -16,16 +15,17 @@ import { CustomSelect } from "@/components/ui/custom-select";
 
 type StatusFilter = "All" | "Active" | "Ending";
 
-function getStatusFilter(filter: StatusFilter): PollStatus[] | null {
-  if (filter === "Active") return ["active", "new"];
-  if (filter === "Ending") return ["ending_soon"];
-  return null;
-}
-
 export default function DiscoverPage() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("All");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const initialSearch = new URLSearchParams(window.location.search).get("search");
+    if (initialSearch) setSearchQuery(initialSearch);
+  }, []);
 
   const statusFilterMap: Record<StatusFilter, PollStatus | 'all' | undefined> = {
     All: "all",
@@ -33,14 +33,24 @@ export default function DiscoverPage() {
     Ending: "ending_soon",
   };
 
-  const { data, isLoading, error } = usePolls({
+  const { data, isLoading, error, refetch } = usePolls({
     search: searchQuery || undefined,
     category: selectedCategory === "All Categories" ? undefined : selectedCategory,
     status: statusFilterMap[selectedStatus] === "all" ? undefined : statusFilterMap[selectedStatus],
+    page,
   });
 
   const polls = data?.results || [];
   const totalCount = data?.count || 0;
+  const hasPreviousPage = page > 1;
+  const hasNextPage = page * POLL_PAGE_SIZE < totalCount && page * POLL_PAGE_SIZE < POLL_MAX_OFFSET;
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedCategory("All Categories");
+    setSelectedStatus("All");
+    setPage(1);
+    router.replace("/polls", { scroll: false });
+  };
 
   return (
     <div className="bg-[#f8f9ff] min-h-screen">
@@ -78,7 +88,14 @@ export default function DiscoverPage() {
                   id="search-contests"
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+                  onBlur={() => {
+                    const params = new URLSearchParams(window.location.search);
+                    if (searchQuery.trim()) params.set("search", searchQuery.trim());
+                    else params.delete("search");
+                    const query = params.toString();
+                    router.replace(`/polls${query ? `?${query}` : ""}`, { scroll: false });
+                  }}
                   placeholder="Search by name or organizer..."
                   className="w-full pl-10 pr-4 py-2.5 bg-white border border-[#c3c6d7] rounded-lg focus:ring-2 focus:ring-[#004ac6]/20 focus:border-[#004ac6] outline-none transition-all font-inter text-[15px] text-[#0b1c30]"
                 />
@@ -97,7 +114,7 @@ export default function DiscoverPage() {
                 id="category-filter"
                 value={selectedCategory}
                 options={POLL_CATEGORIES.map((category) => ({ value: category, label: category }))}
-                onValueChange={setSelectedCategory}
+                onValueChange={(category) => { setSelectedCategory(category); setPage(1); }}
                 className="w-full rounded-lg border border-[#c3c6d7] bg-white px-4 py-2.5 text-left font-inter text-[15px] text-[#0b1c30] outline-none transition focus-visible:border-[#004ac6] focus-visible:ring-2 focus-visible:ring-[#004ac6]/20"
               />
             </div>
@@ -111,7 +128,7 @@ export default function DiscoverPage() {
                 {(["All", "Active", "Ending"] as StatusFilter[]).map((s) => (
                   <button
                     key={s}
-                    onClick={() => setSelectedStatus(s)}
+                    onClick={() => { setSelectedStatus(s); setPage(1); }}
                     aria-pressed={selectedStatus === s}
                     className={`flex-1 px-2 py-1.5 rounded-md transition-colors font-geist text-[13px] font-medium ${
                       selectedStatus === s
@@ -128,11 +145,7 @@ export default function DiscoverPage() {
             {/* Clear Filters */}
             <div className="md:col-span-1 flex items-end">
               <button
-                onClick={() => {
-                  setSearchQuery("");
-                  setSelectedCategory("All Categories");
-                  setSelectedStatus("All");
-                }}
+                onClick={clearFilters}
                 className="w-full h-[42px] flex items-center justify-center bg-[#2563eb] text-white hover:bg-[#004ac6] rounded-lg transition-all"
                 aria-label="Clear filters"
               >
@@ -159,7 +172,8 @@ export default function DiscoverPage() {
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <span className="material-symbols-outlined text-[64px] text-[#ba1a1a] mb-4">error</span>
             <h3 className="font-geist text-[20px] font-semibold text-[#0b1c30] mb-2">Error loading polls</h3>
-            <p className="font-inter text-[15px] text-[#737686] max-w-sm">Please try again later.</p>
+            <p className="font-inter text-[15px] text-[#737686] max-w-sm">Check your connection and try again.</p>
+            <button type="button" onClick={() => void refetch()} className="mt-5 rounded-lg bg-[#004ac6] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#003ea8]">Try again</button>
           </div>
         ) : polls.length > 0 ? (
           <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -181,11 +195,7 @@ export default function DiscoverPage() {
               looking for.
             </p>
             <button
-              onClick={() => {
-                setSearchQuery("");
-                setSelectedCategory("All Categories");
-                setSelectedStatus("All");
-              }}
+              onClick={clearFilters}
               className="px-6 py-2.5 bg-[#004ac6] text-white rounded-lg font-geist text-[14px] font-medium hover:bg-[#2563eb] transition-colors"
             >
               Clear Filters
@@ -193,29 +203,29 @@ export default function DiscoverPage() {
           </div>
         )}
 
-        {/* Pagination placeholder */}
+        {/* API pagination */}
         {polls.length > 0 && (
           <nav
             aria-label="Pagination"
             className="mt-16 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-[#c3c6d7] pt-10"
           >
             <p className="font-inter text-[14px] text-[#737686]">
-              Page <span className="font-semibold text-[#0b1c30]">1</span> of 1
+              Page <span className="font-semibold text-[#0b1c30]">{page}</span>
             </p>
             <div className="flex items-center gap-1">
               <button
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
                 className="p-2 rounded-lg hover:bg-[#e5eeff] transition-colors disabled:opacity-30"
-                disabled
+                disabled={!hasPreviousPage || isLoading}
                 aria-label="Previous page"
               >
                 <span className="material-symbols-outlined">chevron_left</span>
               </button>
-              <button className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#004ac6] text-white font-geist text-[14px] font-medium">
-                1
-              </button>
+              <span aria-current="page" className="w-10 h-10 flex items-center justify-center rounded-lg bg-[#004ac6] text-white font-geist text-[14px] font-medium">{page}</span>
               <button
+                onClick={() => setPage((current) => current + 1)}
                 className="p-2 rounded-lg hover:bg-[#e5eeff] transition-colors disabled:opacity-30"
-                disabled
+                disabled={!hasNextPage || isLoading}
                 aria-label="Next page"
               >
                 <span className="material-symbols-outlined">chevron_right</span>

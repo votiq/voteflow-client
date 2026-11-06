@@ -14,6 +14,7 @@ interface ContestantCardProps {
 
 export function ContestantCard({ contestant, poll, rank, className }: ContestantCardProps) {
   const [modalOpen, setModalOpen] = useState(false);
+  const votingOpen = !["closed", "draft"].includes(poll.status) && (!poll.endsAt || new Date(poll.endsAt).getTime() > Date.now());
 
   return (
     <>
@@ -21,7 +22,7 @@ export function ContestantCard({ contestant, poll, rank, className }: Contestant
         {/* Image */}
         <div className="h-48 relative overflow-hidden bg-[#eff4ff]">
           <img
-            src={contestant.image}
+            src={contestant.image || "/window.svg"}
             alt={contestant.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
@@ -66,13 +67,15 @@ export function ContestantCard({ contestant, poll, rank, className }: Contestant
           {/* Vote Button */}
           <div className="mt-auto pt-3 border-t border-[#c3c6d7]">
             <button
+              type="button"
               onClick={() => setModalOpen(true)}
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 btn-primary rounded-lg text-white font-geist text-[13px] font-medium tracking-[0.01em] hover:opacity-90 transition-opacity"
+              disabled={!votingOpen}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 btn-primary rounded-lg text-white font-geist text-[13px] font-medium tracking-[0.01em] hover:opacity-90 transition-opacity disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>thumb_up</span>
-              Vote Now
+              <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>{votingOpen ? "thumb_up" : "lock"}</span>
+              {votingOpen ? "Vote Now" : "Voting closed"}
               {poll.isPaid && poll.pricePerVote && (
-                <span className="ml-1 opacity-80">(${poll.pricePerVote})</span>
+                <span className="ml-1 opacity-80">(₦{poll.pricePerVote.toLocaleString("en-NG")})</span>
               )}
             </button>
           </div>

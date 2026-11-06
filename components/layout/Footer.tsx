@@ -11,17 +11,17 @@ export function Footer() {
             VoteFlow
           </Link>
           <p className="font-inter text-[14px] leading-[1.5] text-[#434655] max-w-sm">
-            © 2024 VoteFlow. All rights reserved. Secure and transparent voting platform.
+            © {new Date().getFullYear()} VoteFlow. Secure and transparent community voting.
           </p>
         </div>
 
         {/* Links */}
         <div className="flex flex-col md:items-end justify-start gap-4">
           <div className="flex flex-wrap gap-x-6 gap-y-2">
-            <Link href="#" className="font-geist text-[12px] font-semibold leading-[1] text-[#434655] hover:text-[#004ac6] transition-all duration-200 hover:underline">Privacy Policy</Link>
-            <Link href="#" className="font-geist text-[12px] font-semibold leading-[1] text-[#434655] hover:text-[#004ac6] transition-all duration-200 hover:underline">Terms of Service</Link>
-            <Link href="#" className="font-geist text-[12px] font-semibold leading-[1] text-[#434655] hover:text-[#004ac6] transition-all duration-200 hover:underline">Support</Link>
-            <Link href="#" className="font-geist text-[12px] font-semibold leading-[1] text-[#434655] hover:text-[#004ac6] transition-all duration-200 hover:underline">Contact</Link>
+            <Link href="/polls" className="font-geist text-[12px] font-semibold leading-[1] text-[#434655] hover:text-[#004ac6] transition-all duration-200 hover:underline">Explore polls</Link>
+            <Link href="/results" className="font-geist text-[12px] font-semibold leading-[1] text-[#434655] hover:text-[#004ac6] transition-all duration-200 hover:underline">Results</Link>
+            <Link href="/become-creator" className="font-geist text-[12px] font-semibold leading-[1] text-[#434655] hover:text-[#004ac6] transition-all duration-200 hover:underline">Become a creator</Link>
+            <Link href="/register" className="font-geist text-[12px] font-semibold leading-[1] text-[#434655] hover:text-[#004ac6] transition-all duration-200 hover:underline">Create an account</Link>
           </div>
         </div>
       </div>
